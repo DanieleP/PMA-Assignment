@@ -1,0 +1,89 @@
+---
+title: "PML Assignment"
+author: "Daniele Pigni"
+date: "25 October 2015"
+output: html_document
+---
+
+# Background
+
+This report explores how data from accelerometers on the belt, forearm, arm and dumbell of 6 participants predict the manner in which participants did several exercises.  
+
+Datas are collected by devices such as Jawbone Up, Nike FuelBand, and Fitbit. These type of devices are part of the quantified self movement – a group of enthusiasts who take measurements about themselves regularly to improve their health, to find patterns in their behavior, or because they are tech geeks.  
+
+One thing that people regularly do is quantify how much of a particular activity they do, but they rarely quantify how well they do it. That's what I'll explore in this report.  
+
+The dependent variable or response is the “classe” variable in the training set.
+
+# Data
+
+## Read Data
+
+The training data for this project are available here:
+https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv
+  
+The test data are available here:
+https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv
+
+The data for this project comes from this original source: http://groupware.les.inf.puc-rio.br/har. 
+
+The following instructions will load the required libraries and will read the training and testing datasets, assigning missing values to entries that are currently 'NA' or blank.
+
+```{r}
+set.seed(123)
+library(caret)
+library(randomForest)
+
+training = read.csv("pml-training.csv", na.strings=c("", "NA", "NULL"))
+testing = read.csv("pml-testing.csv", na.strings=c("", "NA", "NULL"))
+```
+
+## Clean Data
+
+First step: reduce the number of predictors by exluding predictors with too many NA values
+
+```{r}
+training.clean1 <- training[ , colSums(is.na(training)) == 0]
+```
+
+Second step: remove unrelevant columns for the analysis
+```{r}
+training.clean2 <- training.clean1[, -c(1:7)]
+```
+
+## Split Data
+
+I split the clean dataset (19622 obs., 53 variables) into 2 datasets: train (75%) and validate (25%).  
+```{r}
+split = createDataPartition(y = training.clean2$classe, p = 0.75, list = FALSE)
+train = training.clean2[split, ]
+validate = training.clean2[-split, ]
+```
+
+# Train Model  
+
+I train a Random Forest model on the train dataset using rf method and represent the outcome using the rattle package.  
+```{r}
+model <- randomForest(classe~.,data=train,ntree=100,importance=T)
+model
+```
+
+Next step is to plot the output of the model to see which variable has the biggest impact.  
+```{r}
+varImpPlot(model,)
+```
+
+# Validate model
+
+To check the accuracy of the model, we use the validate dataset applying the trained model and check the results with a confusion matrix.  
+```{r}
+validate.prediction <- predict(model,validate,type="class")
+confusionMatrix(validate.prediction,validate$classe)
+```
+
+# Conclusions
+
+Random Forest demonstrated an accuracy of 0.99 which is very high. The model is therefore accepted and used to predict the classe values of the testing set.
+
+
+
